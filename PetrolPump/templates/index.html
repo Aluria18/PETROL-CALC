@@ -1,0 +1,23 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Petrol Pump</title>
+    <link rel="stylesheet" href="{% static 'style.css' %}">
+</head>
+<body>
+    <div>
+        <h1>Petrol Pump Machine</h1>
+        <form method="POST">
+            {% csrf_token %}
+            <label>Amount (₹):</label>
+            <input type="number" name="amount" step="0.01" required><br><br>
+            <button type="submit">Fill Petrol</button>
+        </form>
+        {% if filled_liters %}
+        <h2>Filled Petrol: {{ filled_liters|floatformat:2 }} liters</h2>
+        {% endif %}
+        <h3>Remaining Petrol in Tank: {{ remaining_capacity|floatformat:2 }} liters</h3>
+    </div>
+</body>
+</html>

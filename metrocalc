@@ -1,0 +1,198 @@
+# Define metro lines
+lines = {
+    'Red': ["Shaheed Sthala", "Hindon River", "Arthala", "Mohan Nagar", "Shyam Park",
+         "Major Mohit Sharma Rajendra Nagar","Raj Bagh", "Shaheed Nagar",
+         "Dilshad Garden", "Jhilmil", "Mansarovar Park", "Shahdara", "Welcome",
+         "Seelampur", "Shastri Park", "Kashmere Gate", "Tis Hazari", "Pul Bangash",
+         "Pratap Nagar", "Shastri Nagar", "Inderlok", "Kanhaiya Nagar", "Keshav Puram",
+         "Netaji Subhash Place", "Kohat Enclave", "Pitampura", "Rohini East",
+         "Rohini West", "Rithala"],
+    'Yellow': ["Samaypur Badli", "Rohini Sector 18,19", "Haiderpur Badli Mor", "Jahangirpuri",
+              "Adarsh Nagar", "Azadpur", "Model Town", "GTB Nagar", "Vishwa Vidyalaya",
+              "Vidhan Sabha", "Civil Lines", "Kashmere Gate", "Chandni Chowk",
+              "Chawri Bazar", "New Delhi", "Rajiv Chowk", "Patel Chowk", "Central Secretariat",
+              "Udyog Bhawan", "Lok Kalyan Marg", "Jor Bagh", "INA", "AIIMS", "Green Park",
+              "Hauz Khas", "Malviya Nagar", "Saket", "Qutab Minar", "Chhatarpur", "Sultanpur",
+              "Ghitorni", "Arjan Garh", "Guru Dronacharya", "Sikandarpur", "MG Road", "IFFCO Chowk", "HUDA City Centre"],
+    'Blue': ["Dwarka Sector 21","Dwarka Sector 8", "Dwarka Sector 9","Dwarka Sector 10","Dwarka Sector 11","Dwarka Sector 12",
+             "Dwarka Sector 13","Dwarka Sector 14","Dwarka","Dwarka Mor","Nawada","Uttam Nagar West","Uttam Nagar East",
+             "Janakpuri West","Janakpuri East","Tilak Nagar","Subhash Nagar","Tagore Garden","Rajouri Garden","Ramesh Nagar",
+             "Moti Nagar","Kirti Nagar","Shadipur","Patel Nagar","Rajendra Place","Karol Bagh","Jhandewalan",
+             "Ramakrishna Ashram Marg","Rajiv Chowk","Barakhamba Road","Mandi House","Supreme Court", "Indraprastha",
+             "Yamuna Bank", "Akshardham", "Mayur Vihar–I", "Mayur Vihar Extension ", "New Ashok Nagar", "Noida Sector 15",
+             "Noida Sector 16 ", "Noida Sector 18", "Botanical Garden", "Golf Course", "Noida City Centre", "Noida Sector 34",
+             "Noida Sector 52","Noida Sector 61", "Noida Sector 59", "Noida Sector 62", "Noida Electronic City"]
+}
+
+# Correct Interchanges
+interchanges = {
+    ('Red', 'Yellow'): 'Kashmere Gate',
+    ('Yellow', 'Red'): 'Kashmere Gate',
+    ('Yellow', 'Blue'): 'Rajiv Chowk',
+    ('Blue', 'Yellow'): 'Rajiv Chowk'
+    # Red -> Blue requires two steps: Red -> Yellow (Kashmere Gate), Yellow -> Blue (Rajiv Chowk)
+}
+
+def find_line(station):
+    #Finds which line the station belongs to.
+    for line_name, stations in lines.items():
+        if station in stations:
+            return line_name
+    return None
+
+def find_route(start, end):
+    # Find route between start and end, handling single or double interchanges.
+    start_line = find_line(start)
+    end_line = find_line(end)
+
+    if not start_line or not end_line:
+        return "Invalid station(s)", False
+
+    interchange_stations = []
+
+    if start_line == end_line:
+        # Same line
+        stations = lines[start_line]
+        start_index = stations.index(start)
+        end_index = stations.index(end)
+        route = stations[min(start_index, end_index):max(start_index, end_index)+1]
+        if start_index > end_index:
+            route.reverse()
+        return route, interchange_stations
+    elif (start_line, end_line) in interchanges:
+        # Direct interchange available
+        interchange_station = interchanges[(start_line, end_line)]
+        route, _ = direct_interchange_route(start, end, start_line, end_line, interchange_station)
+        interchange_stations.append(interchange_station)
+        return route, interchange_stations
+    else:
+        # Two interchanges needed (Red -> Yellow -> Blue or similar)
+        # Assuming the two-interchange is always via Yellow as per the comment/current interchanges structure
+        # This logic needs to be more robust if there are other potential two-interchange routes (e.g., Red -> Blue -> Yellow)
+        first_interchange = interchanges.get((start_line, 'Yellow'))
+        second_interchange = interchanges.get(('Yellow', end_line))
+
+        if first_interchange and second_interchange:
+            # Segment 1: start_station to first_interchange on start_line
+            stations_seg1 = lines[start_line]
+            start_index_seg1 = stations_seg1.index(start)
+            end_index_seg1 = stations_seg1.index(first_interchange)
+            route1 = stations_seg1[min(start_index_seg1, end_index_seg1):max(start_index_seg1, end_index_seg1)+1]
+            if start_index_seg1 > end_index_seg1:
+                route1.reverse()
+
+            # Segment 2: first_interchange to second_interchange on Yellow line
+            stations_seg2 = lines['Yellow']
+            start_index_seg2 = stations_seg2.index(first_interchange)
+            end_index_seg2 = stations_seg2.index(second_interchange)
+            route2 = stations_seg2[min(start_index_seg2, end_index_seg2):max(start_index_seg2, end_index_seg2)+1]
+            if start_index_seg2 > end_index_seg2:
+                route2.reverse()
+
+            # Segment 3: second_interchange to end_station on end_line
+            stations_seg3 = lines[end_line]
+            start_index_seg3 = stations_seg3.index(second_interchange)
+            end_index_seg3 = stations_seg3.index(end)
+            route3 = stations_seg3[min(start_index_seg3, end_index_seg3):max(start_index_seg3, end_index_seg3)+1]
+            if start_index_seg3 > end_index_seg3:
+                route3.reverse()
+
+            # Combine full route, removing duplicate interchange stations at the junctions
+            full_route = route1 + route2[1:] + route3[1:]
+            interchange_stations.extend([first_interchange, second_interchange])
+            return full_route, interchange_stations
+        else:
+            # This might happen if the two-interchange path isn't via Yellow line
+            return "No direct route available.", False
+
+
+def direct_interchange_route(start, end, start_line, end_line, interchange_station):
+    """Helper to handle single interchange route."""
+    # This function is designed for a route *from a station on start_line to a station on end_line*
+    # where the interchange happens at interchange_station.
+    start_stations = lines[start_line]
+    end_stations = lines[end_line]
+
+    # Route from start to interchange_station on start_line
+    start_index = start_stations.index(start)
+    interchange_index_start = start_stations.index(interchange_station)
+    to_interchange = start_stations[min(start_index, interchange_index_start):max(start_index, interchange_index_start)+1]
+    if start_index > interchange_index_start:
+        to_interchange.reverse()
+
+    # Route from interchange_station to end on end_line
+    interchange_index_end = end_stations.index(interchange_station)
+    end_index = end_stations.index(end)
+    from_interchange = end_stations[min(interchange_index_end, end_index):max(interchange_index_end, end_index)+1]
+    if interchange_index_end > end_index:
+        from_interchange.reverse()
+
+    # Combine the two parts, removing the duplicate interchange station
+    route = to_interchange + from_interchange[1:]
+    return route, True # Return True for interchange occurrence
+
+def calculate_fare(num_stations):
+    """Calculates fare based on number of stations."""
+    if num_stations <= 5:
+        return 10
+    elif num_stations <= 15:
+        return 20
+    elif num_stations <= 25:
+        return 30
+    elif num_stations <= 35:
+        return 40
+    else:
+        return 50
+
+def calculate_time(num_stations, interchange):
+    """Calculates estimated time."""
+    time_per_station = 2
+    interchange_time = 5 if interchange else 0
+    # Add an extra 5 minutes for the second interchange as well if there are two
+    num_interchanges = len(interchange) if isinstance(interchange, list) else (1 if interchange else 0)
+    total_interchange_time = num_interchanges * 5
+    total_time = (num_stations * time_per_station) + total_interchange_time
+    return total_time
+
+# --- Main Program ---
+
+# --- Show Available Stations with Numbers ---
+print("\nAvailable Metro Stations:\n")
+station_numbering = {}  # Dictionary to map number to station name
+counter = 1
+
+for line_name, stations in lines.items():
+    print(f"{line_name} Line:")
+    for station in stations:
+        print(f"  {counter}. {station}")
+        station_numbering[counter] = station
+        counter += 1
+    print()
+
+print("\nNote: Please type the station name exactly as shown.\n")
+
+# --- Take User Input ---
+start_station = input("Enter starting station: ")
+end_station = input("Enter destination station: ")
+
+# --- Find Route and Calculate Details ---
+route, interchange_stations = find_route(start_station, end_station)
+
+if isinstance(route, list):
+    print("\nYour Metro Route:")
+    print("\n ->\t".join(route))
+    num_stations = len(route) - 1
+    fare = calculate_fare(num_stations)
+    # Pass the list of interchange stations to calculate_time
+    total_time = calculate_time(num_stations, interchange_stations)
+
+    print(f"\nTotal Stations: {num_stations}")
+    print(f"Fare: ₹{fare}")
+    print(f"Estimated Time: {total_time} minutes")
+
+    if interchange_stations:
+        print(f"Interchange(s) at: {', '.join(interchange_stations)}")
+        # Adjusted note to reflect potentially multiple interchanges
+        print(f"Note: Interchange time of {len(interchange_stations) * 5} minutes is included.")
+else:
+    print(route)
